@@ -1,0 +1,24 @@
+{
+  "name": "Boekhouding - Voorraadbeheer",
+  "short_name": "Boekhouding",
+  "description": "Voorraadbeheer en verkoop systeem voor ICHK",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/boekhoudingLogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/boekhoudingLogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
