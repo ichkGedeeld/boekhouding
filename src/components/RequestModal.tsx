@@ -21,6 +21,14 @@ interface RequestModalProps {
   onClose: () => void
 }
 
+interface RequestData {
+  customer_name: string | null
+  customer_phone: string | null
+  customer_email: string | null
+  item_id: number | null
+  custom_item_name: string | null
+}
+
 export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
   const [requests, setRequests] = useState<Request[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -97,10 +105,12 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
     setIsSubmitting(true)
     
     try {
-      let requestData: any = {
+      const requestData: RequestData = {
         customer_name: formData.customer_name || null,
         customer_phone: formData.customer_phone || null,
-        customer_email: formData.customer_email || null
+        customer_email: formData.customer_email || null,
+        item_id: null,
+        custom_item_name: null
       }
 
       if (useCustomItem) {

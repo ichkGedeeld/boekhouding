@@ -1,7 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+
+interface SaleItem {
+  quantity: number
+  price_per_item: number
+  items: {
+    name: string
+    cost_price: number
+  }
+}
 
 interface FinanceData {
   totalRevenue: number
@@ -23,14 +32,7 @@ export default function FinanceModal({ isOpen, onClose }: FinanceModalProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true)
-      fetchFinanceData()
-    }
-  }, [isOpen, timeRange])
-
-  const getDateRange = () => {
+  const getDateRange = useCallback(() => {
     const now = new Date()
     const start = new Date()
     
@@ -47,9 +49,9 @@ export default function FinanceModal({ isOpen, onClose }: FinanceModalProps) {
     }
     
     return start.toISOString()
-  }
+  }, [timeRange])
 
-  const fetchFinanceData = async () => {
+  const fetchFinanceData = useCallback(async () => {
     setLoading(true)
     try {
       const startDate = getDateRange()
@@ -89,7 +91,7 @@ export default function FinanceModal({ isOpen, onClose }: FinanceModalProps) {
         salesByDate[saleDate].revenue += sale.total_amount
         salesByDate[saleDate].sales += 1
         
-        sale.sale_items.forEach(item => {
+        sale.sale_items.forEach((item: SaleItem) => {
           const itemRevenue = item.quantity * item.price_per_item
           const itemCost = item.quantity * item.items.cost_price
           
@@ -132,7 +134,14 @@ export default function FinanceModal({ isOpen, onClose }: FinanceModalProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [getDateRange])
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true)
+      fetchFinanceData()
+    }
+  }, [isOpen, timeRange, fetchFinanceData])
 
   const handleClose = () => {
     setIsVisible(false)
