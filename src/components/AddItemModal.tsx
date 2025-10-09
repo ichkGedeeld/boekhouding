@@ -1,15 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, Item } from '@/lib/supabase'
 
 interface AddItemModalProps {
   isOpen: boolean
   onClose: () => void
   onItemAdded: () => void
+  // When provided, the modal acts in "edit" mode for this item
+  item?: Item | null
+  onItemUpdated?: () => void
+  onItemDeleted?: () => void
 }
 
-export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemModalProps) {
+export default function AddItemModal({ isOpen, onClose, onItemAdded, item, onItemUpdated, onItemDeleted }: AddItemModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     cost_price: '',
@@ -27,6 +31,19 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemMo
       setIsVisible(true)
     }
   }, [isOpen])
+
+  // Prefill in edit mode
+  useEffect(() => {
+    if (isOpen && item) {
+      setFormData({
+        name: item.name ?? '',
+        cost_price: item.cost_price != null ? String(item.cost_price) : '',
+        sell_price: item.sell_price != null ? String(item.sell_price) : '',
+        inventory_count: item.inventory_count != null ? String(item.inventory_count) : ''
+      })
+      setErrors({})
+    }
+  }, [isOpen, item])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -65,18 +82,32 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemMo
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase
-        .from('items')
-        .insert([
-          {
+      if (item) {
+        const { error } = await supabase
+          .from('items')
+          .update({
             name: formData.name.trim(),
             cost_price: parseFloat(formData.cost_price),
             sell_price: parseFloat(formData.sell_price),
             inventory_count: parseInt(formData.inventory_count)
-          }
-        ])
+          })
+          .eq('id', item.id)
 
-      if (error) throw error
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('items')
+          .insert([
+            {
+              name: formData.name.trim(),
+              cost_price: parseFloat(formData.cost_price),
+              sell_price: parseFloat(formData.sell_price),
+              inventory_count: parseInt(formData.inventory_count)
+            }
+          ])
+
+        if (error) throw error
+      }
 
       // Reset form and close modal with transition
       setIsClosing(true)
@@ -90,12 +121,49 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemMo
         setErrors({})
         setIsClosing(false)
         setIsVisible(false)
-        onItemAdded()
+        if (item) {
+          onItemUpdated && onItemUpdated()
+        } else {
+          onItemAdded()
+        }
         onClose()
       }, 200)
     } catch (error) {
-      console.error('Error adding item:', error)
-      setErrors({ general: 'Er is een fout opgetreden bij het toevoegen van het item' })
+      console.error('Error saving item:', error)
+      setErrors({ general: 'Er is een fout opgetreden bij het opslaan van het item' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!item || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', item.id)
+
+      if (error) throw error
+
+      setIsClosing(true)
+      setTimeout(() => {
+        setFormData({
+          name: '',
+          cost_price: '',
+          sell_price: '',
+          inventory_count: ''
+        })
+        setErrors({})
+        setIsClosing(false)
+        setIsVisible(false)
+        onItemDeleted && onItemDeleted()
+        onClose()
+      }, 200)
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      setErrors({ general: 'Er is een fout opgetreden bij het verwijderen van het item' })
     } finally {
       setIsSubmitting(false)
     }
@@ -149,7 +217,7 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemMo
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">Nieuw item toevoegen</h2>
+            <h2 className="text-3xl font-bold text-gray-900">{item ? 'Item bewerken' : 'Nieuw item toevoegen'}</h2>
             <button
               onClick={handleClose}
               disabled={isSubmitting}
@@ -254,12 +322,22 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded }: AddItemMo
               >
                 Annuleren
               </button>
+              {item && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-base bg-red-400 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Bezig...' : 'Verwijderen'}
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="flex-1 px-4 py-2 text-base bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Bezig...' : 'Toevoegen'}
+                {isSubmitting ? 'Bezig...' : item ? 'Opslaan' : 'Toevoegen'}
               </button>
             </div>
           </form>

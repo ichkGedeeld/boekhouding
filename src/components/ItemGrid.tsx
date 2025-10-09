@@ -6,12 +6,20 @@ import toast from 'react-hot-toast'
 
 interface ItemGridProps {
   items: Item[]
+  isManageMode?: boolean
+  selectedItemIds?: Set<number>
+  onToggleSelect?: (id: number) => void
+  onEditItem?: (item: Item) => void
 }
 
-export default function ItemGrid({ items }: ItemGridProps) {
+export default function ItemGrid({ items, isManageMode = false, selectedItemIds, onToggleSelect, onEditItem }: ItemGridProps) {
   const { dispatch } = useCart()
 
-  const handleAddToCart = (item: Item) => {
+  const handleCardClick = (item: Item) => {
+    if (isManageMode) {
+      onEditItem && onEditItem(item)
+      return
+    }
     if (item.inventory_count > 0) {
       dispatch({ type: 'ADD_ITEM', payload: item })
     } else {
@@ -26,13 +34,27 @@ export default function ItemGrid({ items }: ItemGridProps) {
       {items.map((item) => (
         <div
           key={item.id}
-          className={`bg-white rounded-xl shadow-md p-6 transition-all duration-200 cursor-pointer ${
+          className={`bg-white rounded-xl shadow-md p-6 transition-all duration-200 cursor-pointer relative ${
             item.inventory_count > 0
               ? 'hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-purple-200'
               : 'opacity-60 cursor-not-allowed'
           }`}
-          onClick={() => handleAddToCart(item)}
+          onClick={() => handleCardClick(item)}
         >
+          {isManageMode && (
+            <button
+              aria-label="Selecteer item"
+              onClick={(e) => { e.stopPropagation(); onToggleSelect && onToggleSelect(item.id) }}
+              className="absolute top-3 left-3"
+            >
+              <input
+                type="checkbox"
+                checked={selectedItemIds?.has(item.id) ?? false}
+                readOnly
+                className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 accent-purple-600"
+              />
+            </button>
+          )}
           <div className="flex justify-between items-start mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 leading-tight">
               {item.name}
