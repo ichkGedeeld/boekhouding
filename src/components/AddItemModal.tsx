@@ -261,7 +261,7 @@ export default function AddItemModal({ isOpen, onClose, onItemAdded, item, onIte
               <input
                 type="number"
                 id="cost_price"
-                step="0.10"
+                step="0.01"
                 min="0"
                 value={formData.cost_price}
                 onChange={(e) => handleChange('cost_price', e.target.value)}
